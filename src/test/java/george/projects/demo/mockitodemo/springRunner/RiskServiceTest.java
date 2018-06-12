@@ -122,19 +122,30 @@ public class RiskServiceTest {
 	public void willGiveAFalsePositiveAndTheTestWillPassEvenIfItShouldNot() {
 		//Given
 		int input = 15;
-		// in the original implementation of the ServiceThatIsNotMockedInTests, if the
-		// input was not 0, it always produced a result that was wrapping the value 100
+		// in the original implementation of the tested method, the serviceThatIsNotMockedInTests.transform(input)
+		// produced a result that was wrapping the value 100 and the result was
+		// passed to the serviceThatUsesAResult.performSomeLogic method
 
-		// based on the input, the new implementation returns a result that contains 15,
-		// but the any() matcher masks the execution path in the tested method
+		// in a newer implementation, another transformation is applied to that result
+		// and another object that contains a value different that 100
+		// is produced and passed to the serviceThatUsesAResult.performSomeLogic method
+
+		// by using the any() matcher, the new input of the serviceThatUsesAResult.performSomeLogic
+		// is now masked and the execution path in the tested method is different
+
+		// we are basically FORCING the test to pass, no matter what happens in reality
+
+		// this test will not take into consideration the new business logic
 		when(serviceThatUsesAResult.performSomeLogic(any())).thenReturn(MAJOR_RISK);
 
 		//When
 		boolean result = riskService.performSomeLogicBasedOnAnInput(input);
 
 		//Then
+
+		// This happens to be the same in the new execution path
 		assertThat(result).isTrue();
-		System.out.println(riskService.getEvents());
+		// Even this assertion passes, because the test was forced to go this way
 		assertThat(riskService.getEvents()).contains(MAJOR_RISK);
 	}
 

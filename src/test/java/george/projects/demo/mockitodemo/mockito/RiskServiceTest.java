@@ -7,6 +7,8 @@ import george.projects.demo.mockitodemo.model.RiskType;
 import george.projects.demo.mockitodemo.repository.RiskRepository;
 import george.projects.demo.mockitodemo.service.RiskCalculator;
 import george.projects.demo.mockitodemo.service.RiskService;
+import george.projects.demo.mockitodemo.service.ServiceThatIsNotMockedInTests;
+import george.projects.demo.mockitodemo.service.ServiceThatUsesAResult;
 import george.projects.demo.mockitodemo.someExternalApacheLibrary.AResult;
 import org.junit.Test;
 import org.junit.runner.RunWith;
@@ -14,7 +16,9 @@ import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.Spy;
 import org.mockito.junit.MockitoJUnitRunner;
+import org.springframework.beans.factory.annotation.Autowired;
 
+import static george.projects.demo.mockitodemo.model.RiskType.MAJOR_RISK;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.when;
@@ -34,6 +38,12 @@ public class RiskServiceTest {
 
 	@Mock
 	private RiskCalculator riskCalculator;
+
+	@Mock
+	private ServiceThatIsNotMockedInTests thisIsNowMocked;
+
+	@Mock
+	private ServiceThatUsesAResult serviceThatUsesAResult;
 
 	/**
 	 * Example for calling the real method on a mock
@@ -106,8 +116,34 @@ public class RiskServiceTest {
 	}
 
 	/**
-	 * Example for Reason 2
-	 * It is ok to use {@link org.mockito.Mockito#any} in this case - maybe even the only solution
+	 * Reason 2 -> avoid the bad case scenario of masking the second transformation
+	 * and the new input
+	 */
+	@Test
+	public void thisTestWillFailInTheNewImplementationOfTheMethod() {
+		// Given
+		int value = 15;
+
+		AResult expectedResultInput = new AResult(100);
+		when(thisIsNowMocked.transform(value)).thenReturn(expectedResultInput);
+
+		// This condition will not produce the desired effect, because the input is now different
+		// If we switch to any(), the test will pass
+		when(serviceThatUsesAResult.performSomeLogic(expectedResultInput)).thenReturn(MAJOR_RISK);
+
+		//When
+		boolean result = riskService.performSomeLogicBasedOnAnInput(value);
+
+		//Then
+		assertThat(result).isTrue();
+		assertThat(riskService.getEvents()).contains(MAJOR_RISK);
+
+	}
+
+
+	/**
+	 * Example for Reason 2 -> good usage of the {@link org.mockito.Mockito#any}
+	 * In this case - maybe even the only solution
 	 */
 	@Test
 	public void shouldCalculateRiskUsingExternalLibrary() {

@@ -73,17 +73,32 @@ public class RiskService {
 	public boolean performSomeLogicBasedOnAnInput(int input) {
 		boolean actionPerformed;
 
-		AResult result = serviceThatIsNotMockedInTests.performSomeLogic(input);
-		RiskType riskType = serviceThatUsesAResult.performSomeLogic(result);
+		// In the original version of this tested method this was the result
+		// that was passed to the serviceThatUsesAResult.performSomeLogic method
+		AResult result = serviceThatIsNotMockedInTests.transform(input);
 
+		// In a newer version of this method, another transformation is applied and
+		// the serviceThatUsesAResult.performSomeLogic method takes another reference as input,
+		// that is now masked by the any() matcher in the test
+		// The problem is that the new reference also contains a different value inside,
+		// that will take the execution logic on a different path then tested the one in the original test
+		// However, the original test will ALWAYS pass
+
+		AResult anotherResult = serviceThatIsNotMockedInTests.transformAgain(result);
+		RiskType riskType = serviceThatUsesAResult.performSomeLogic(anotherResult);
+
+		// In the test we are asserting that the result of the method is true, which happens
+		// to pass in both MAJOR_RISK and OTHER_RISK_TYPE
 		if (MAJOR_RISK.equals(riskType)) {
-			events.add(MAJOR_RISK);
+			events.add(riskType);
 			actionPerformed = true;
 		} else if (RiskType.MINOR_RISK.equals(riskType)) {
 			//do nothing
 			actionPerformed = false;
 		} else {
-			events.add(OTHER_RISK_TYPE);
+			// this else is introduced by the new implementation of the current method
+			// and is for the newly introduced OTHER_RISK_TYPE
+			events.add(riskType);
 			actionPerformed = true;
 		}
 		return actionPerformed;
